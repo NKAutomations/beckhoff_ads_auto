@@ -57,7 +57,7 @@ async def _handle_write(call: ServiceCall) -> None:
     await _coordinator(call.hass, call).async_write_symbol(call.data[ATTR_SYMBOL], call.data[ATTR_VALUE])
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    if DOMAIN in hass.services:
+    if hass.services.has_service(DOMAIN, SERVICE_RESCAN):
         return True
     hass.services.async_register(DOMAIN, SERVICE_RESCAN, _handle_rescan,
                                  schema=vol.Schema({vol.Optional(ATTR_ENTRY_ID): cv.string}))
