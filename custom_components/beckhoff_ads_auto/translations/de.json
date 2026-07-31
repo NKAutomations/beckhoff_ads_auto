@@ -1,0 +1,4 @@
+{
+  "config": {"step": {"user": {"title": "Beckhoff ADS", "description": "Mit einer TwinCAT-SPS verbinden.", "data": {"host": "PLC-Host", "ams_net_id": "AMS Net ID", "port": "ADS-Port", "roots": "Root-Symbole", "poll_interval": "Abfrageintervall", "write_enable": "Schreiben aktivieren"}}}, "error": {"cannot_connect": "Verbindung zur PLC nicht möglich.", "invalid_auth": "ADS-Konfiguration wurde abgelehnt.", "unknown": "Unerwarteter Fehler."}, "abort": {"already_configured": "Diese PLC ist bereits konfiguriert."}},
+  "options": {"step": {"init": {"title": "Beckhoff-ADS-Optionen", "data": {"roots": "Root-Symbole", "poll_interval": "Abfrageintervall", "write_enable": "Schreiben aktivieren", "include": "Include-Prefix oder Regex", "exclude": "Exclude-Prefix oder Regex", "read_only": "Nur-Lesen-Prefix oder Regex", "include_arrays": "Array-Elemente einschließen"}}}}
+}

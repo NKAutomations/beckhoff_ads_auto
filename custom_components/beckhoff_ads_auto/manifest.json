@@ -1,0 +1,11 @@
+{
+  "domain": "beckhoff_ads_auto",
+  "name": "Beckhoff ADS Auto",
+  "version": "0.1.0",
+  "documentation": "https://github.com/example/beckhoff_ads_auto",
+  "issue_tracker": "https://github.com/example/beckhoff_ads_auto/issues",
+  "codeowners": ["@local"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "requirements": ["pyads>=3.4.0"]
+}

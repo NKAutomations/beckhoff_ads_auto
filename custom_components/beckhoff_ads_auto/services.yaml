@@ -1,0 +1,35 @@
+rescan:
+  name: Rescan PLC symbols
+  description: Rediscover symbols and add newly found entities.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Optional Home Assistant config entry ID.
+      selector:
+        text:
+read_symbol:
+  name: Read ADS symbol
+  description: Read one symbol immediately.
+  fields:
+    symbol:
+      required: true
+      selector:
+        text:
+    entry_id:
+      selector:
+        text:
+write_symbol:
+  name: Write ADS symbol
+  description: Write one value to a writable PLC symbol.
+  fields:
+    symbol:
+      required: true
+      selector:
+        text:
+    value:
+      required: true
+      selector:
+        text:
+    entry_id:
+      selector:
+        text:
