@@ -6,8 +6,10 @@
         "description": "Connect to a TwinCAT PLC and select root structures.",
         "data": {
           "host": "PLC host",
-          "ams_net_id": "AMS Net ID",
-          "port": "ADS port",
+          "ams_net_id": "Target AMS Net ID",
+          "local_ams_net_id": "Adapter AMS Net ID",
+          "port": "Target ADS port",
+          "timeout": "ADS timeout (seconds)",
           "roots": "Root symbols (comma-separated)",
           "poll_interval": "Polling interval (seconds)",
           "write_enable": "Enable writes"
@@ -26,6 +28,8 @@
       "init": {
         "title": "Beckhoff ADS options",
         "data": {
+          "local_ams_net_id": "Adapter AMS Net ID",
+          "timeout": "ADS timeout (seconds)",
           "roots": "Root symbols (comma-separated)",
           "poll_interval": "Polling interval (seconds)",
           "write_enable": "Enable writes",

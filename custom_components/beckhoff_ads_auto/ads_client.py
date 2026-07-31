@@ -42,6 +42,30 @@ class ADSClient:
         self.timeout = float(timeout)
         self._connection: pyads.Connection | None = None
         self._lock = threading.RLock()
+        self._local_router_configured = False
+
+    def _configure_local_router(self) -> None:
+        """Configure pyads' Linux AMS source address before opening a connection.
+
+        ioBroker's sourceAmsNetId maps to pyads.set_local_address(). Setting
+        Connection.ams_net_id is not equivalent: that attribute is the target
+        address, while pyads stores the actual ADS destination in its internal
+        AmsAddr object.
+        """
+        if not self.local_ams_net_id or self._local_router_configured:
+            return
+        try:
+            pyads.open_port()
+            pyads.set_local_address(self.local_ams_net_id)
+            pyads.close_port()
+            self._local_router_configured = True
+            _LOGGER.debug("Configured local ADS AMS Net ID: %s", self.local_ams_net_id)
+        except Exception:
+            try:
+                pyads.close_port()
+            except Exception:
+                _LOGGER.debug("Error closing temporary pyads router port", exc_info=True)
+            raise
 
     def connect(self) -> None:
         with self._lock:
@@ -49,12 +73,12 @@ class ADSClient:
                 return
             _LOGGER.debug("Opening ADS connection to %s:%s via %s (local AMS: %s, timeout: %.2fs)", self.ams_net_id, self.port, self.host, self.local_ams_net_id, self.timeout)
             try:
+                self._configure_local_router()
                 self._connection = pyads.Connection(self.ams_net_id, self.port, self.host)
-                if self.local_ams_net_id and hasattr(self._connection, "ams_net_id"):
-                    self._connection.ams_net_id = self.local_ams_net_id
                 self._connection.open()
-                if hasattr(self._connection, "set_timeout"):
-                    self._connection.set_timeout(int(self.timeout * 1000))
+                self._connection.set_timeout(int(self.timeout * 1000))
+                local_address = self._connection.get_local_address()
+                _LOGGER.debug("ADS connection opened; local AMS address: %s", local_address)
             except Exception as err:
                 self._connection = None
                 raise BeckhoffAdsConnectionError(str(err)) from err
