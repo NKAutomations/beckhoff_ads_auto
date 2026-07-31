@@ -1,3 +1,46 @@
 {
-  "config": {"step": {"user": {"title": "Beckhoff ADS", "description": "Mit einer TwinCAT-SPS verbinden.", "data": {"host": "SPS-Host", "ams_net_id": "Ziel-AMS-Net-ID", "local_ams_net_id": "Adapter-AMS-Net-ID", "port": "Ziel-ADS-Port", "timeout": "ADS-Timeout (Sekunden)", "roots": "Root-Symbole", "poll_interval": "Abfrageintervall", "write_enable": "Schreiben aktivieren"}}}, "options": {"step": {"init": {"title": "Beckhoff-ADS-Optionen", "data": {"local_ams_net_id": "Adapter-AMS-Net-ID", "timeout": "ADS-Timeout (Sekunden)", "roots": "Root-Symbole", "poll_interval": "Abfrageintervall", "write_enable": "Schreiben aktivieren", "include": "Include-Filter", "exclude": "Exclude-Filter", "read_only": "Erzwungen schreibgeschützt", "include_arrays": "Array-Elemente einschließen"}}}}
+  "config": {
+    "step": {
+      "user": {
+        "title": "Beckhoff ADS",
+        "description": "Mit einer TwinCAT-SPS verbinden.",
+        "data": {
+          "host": "SPS-Host",
+          "ams_net_id": "Ziel-AMS-Net-ID",
+          "local_ams_net_id": "Adapter-AMS-Net-ID",
+          "port": "Ziel-ADS-Port",
+          "timeout": "ADS-Timeout (Sekunden)",
+          "roots": "Root-Symbole",
+          "poll_interval": "Abfrageintervall",
+          "write_enable": "Schreiben aktivieren"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zur SPS konnte nicht hergestellt werden.",
+      "invalid_auth": "Die ADS-Konfiguration wurde abgelehnt.",
+      "unknown": "Unbekannter Fehler."
+    },
+    "abort": {
+      "already_configured": "Diese SPS ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Beckhoff-ADS-Optionen",
+        "data": {
+          "local_ams_net_id": "Adapter-AMS-Net-ID",
+          "timeout": "ADS-Timeout (Sekunden)",
+          "roots": "Root-Symbole",
+          "poll_interval": "Abfrageintervall",
+          "write_enable": "Schreiben aktivieren",
+          "include": "Include-Filter",
+          "exclude": "Exclude-Filter",
+          "read_only": "Erzwungen schreibgeschützt",
+          "include_arrays": "Array-Elemente einschließen"
+        }
+      }
+    }
+  }
 }
