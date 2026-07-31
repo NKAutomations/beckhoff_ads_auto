@@ -52,6 +52,12 @@ TYPE_MAPPING: Final[dict[str, TypeInfo]] = {
     "REAL": TypeInfo("REAL", "sensor", True, numeric=True),
     "LREAL": TypeInfo("LREAL", "sensor", True, numeric=True),
     "STRING": TypeInfo("STRING", "sensor", True, string=True),
+    "TIME": TypeInfo("TIME", "sensor", True, string=True),
+    "TIME_OF_DAY": TypeInfo("TIME_OF_DAY", "sensor", True, string=True),
+    "TOD": TypeInfo("TOD", "sensor", True, string=True),
+    "DATE": TypeInfo("DATE", "sensor", True, string=True),
+    "DATE_AND_TIME": TypeInfo("DATE_AND_TIME", "sensor", True, string=True),
+    "DT": TypeInfo("DT", "sensor", True, string=True),
 }
 
 NUMERIC_TYPES: Final = {key for key, value in TYPE_MAPPING.items() if value.numeric}

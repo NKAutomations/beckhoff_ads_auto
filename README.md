@@ -7,11 +7,11 @@ Custom Integration für TwinCAT 3 über ADS/`pyads`. Sie entdeckt Blatt-Symbole 
 - UI-Konfiguration über Config Flow und Options Flow
 - ADS-Verbindung zu einer TwinCAT-PLC
 - Mehrere Roots, zum Beispiel `GVL_HA,MAIN.ha`
-- Verschachtelte Strukturen: `pyads.get_all_symbols()` liefert die Blatt-Symbole; diese werden rekursiv wirkend flach als Pfad verarbeitet
+- Verschachtelte DUTs und Strukturen: direkte Primitive werden sofort übernommen, benutzerdefinierte Datentypen werden zusätzlich über die TwinCAT-Datentyp-Metadaten rekursiv bis zu primitiven Blatt-Pfaden wie `GVL_IOBroker.MyDut.SomeBool` expandiert
 - Optional Array-Elemente
 - BOOL: `binary_sensor` oder schreibbarer `switch`
 - Numerische Typen: `sensor` oder schreibbarer `number`
-- STRING: `sensor` oder schreibbarer `text`
+- STRING sowie TwinCAT-Zeit-/Datumswerte: `sensor` oder schreibbarer `text`
 - Polling per `DataUpdateCoordinator`, I/O läuft im Executor
 - Reconnect nach PLC-Neustart oder Kommunikationsfehler
 - Rescan mit dynamischem Hinzufügen neuer Entities
@@ -98,7 +98,9 @@ Das muss dieselben Dateien wie Schritt C anzeigen. Falls nicht, wurde der falsch
 3. **Geräte & Dienste** öffnen.
 4. **Integration hinzufügen** anklicken.
 5. Nach **Beckhoff ADS Auto** suchen.
-6. PLC-IP, AMS Net ID, Port `851`, Root-Symbol und Polling-Intervall eintragen.
+6. PLC-IP, Ziel-AMS-Net-ID, optional lokale Adapter-AMS-Net-ID, Ziel-ADS-Runtime-Port `851`, Root-Symbol und Polling-Intervall eintragen.
+
+Der Eintrag `851` ist der **TwinCAT-ADS-Runtime-Port** der SPS. Die ADS/TCP-Verbindung läuft trotzdem wie üblich über den Host beziehungsweise die konfigurierte Route zur SPS; der Runtime-Port wählt nur das SPS-Runtime-Ziel innerhalb von ADS aus.
 
 HACS ist für diesen Schnellstart nicht erforderlich. Die direkte Installation ist für den ersten Test einfacher. HACS kann später zusätzlich eingerichtet werden, sollte aber nicht parallel zur direkten Installation verwendet werden.
 

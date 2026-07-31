@@ -31,6 +31,7 @@
         "title": "Beckhoff-ADS-Optionen",
         "data": {
           "local_ams_net_id": "Adapter-AMS-Net-ID",
+          "port": "Ziel-ADS-Port",
           "timeout": "ADS-Timeout (Sekunden)",
           "roots": "Root-Symbole",
           "poll_interval": "Abfrageintervall",

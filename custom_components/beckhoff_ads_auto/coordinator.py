@@ -40,6 +40,7 @@ class ADSCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             if not self.symbols:
                 self.symbols = await self.hass.async_add_executor_job(self.client.discover, self.roots, self.include, self.exclude, self.read_only, self.include_arrays)
+                _LOGGER.debug("ADS discovery under roots=%s produced %d symbols", self.roots, len(self.symbols))
             descriptors = list(self.symbols.values())
             return await self.hass.async_add_executor_job(self.client.read_many, descriptors)
         except BeckhoffAdsError as err:
