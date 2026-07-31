@@ -17,42 +17,74 @@ Custom Integration für TwinCAT 3 über ADS/`pyads`. Sie entdeckt Blatt-Symbole 
 - Rescan mit dynamischem Hinzufügen neuer Entities
 - Services für Rescan, Lesen und Schreiben
 
-## Installation
+## Vollständige Installation für Home Assistant Docker auf dem Raspberry Pi
 
-### Manuell
+Diese Anleitung gilt für Home Assistant Container beziehungsweise Docker Compose auf Raspberry Pi OS. Sie gilt **nicht** für Home Assistant OS. Alle Linux-Befehle werden auf dem Raspberry Pi per SSH ausgeführt.
 
-1. Den Ordner `custom_components/beckhoff_ads_auto` nach `/config/custom_components/` kopieren.
-2. Home Assistant neu starten.
-3. Unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach **Beckhoff ADS Auto** suchen.
-4. PLC-Host, AMS Net ID, ADS-Port und Root-Symbole eingeben.
+### Voraussetzungen
 
-`pyads` wird über `manifest.json` automatisch installiert. Bei einer Docker-Installation muss der Container ausgehend die PLC erreichen können; bei Router/NAT ist zusätzlich die ADS Route einzurichten.
+Vorher müssen folgende Informationen bekannt sein:
 
-### HACS
+- IP-Adresse des Raspberry Pi, zum Beispiel `192.168.178.50`
+- IP-Adresse der Beckhoff-PLC, zum Beispiel `192.168.178.60`
+- AMS Net ID der PLC, zum Beispiel `5.1.204.160.1.1`
+- ADS-Port der TwinCAT-3-Runtime, normalerweise `851`
+- SSH-Zugang zum Raspberry Pi
+- Benutzer mit Zugriff auf den Docker- beziehungsweise Home-Assistant-Config-Ordner
 
-Das Repository als benutzerdefiniertes Repository vom Typ **Integration** hinzufügen. Danach **Beckhoff ADS Auto** installieren und Home Assistant neu starten.
+Die PLC und der Raspberry Pi müssen sich im gleichen Netzwerk befinden oder über Routing erreichbar sein.
 
-## Home Assistant als Docker-Container
+### Schritt 1: Per SSH auf dem Raspberry Pi anmelden
 
-Bei Docker müssen Dateien in das auf dem Host gemountete Home-Assistant-Konfigurationsverzeichnis kopiert werden. Der Zielpfad im Container ist normalerweise `/config`.
+Von einem anderen Rechner ausführen:
 
-Zuerst den Container und die Mounts prüfen:
+```bash
+ssh BENUTZERNAME@RASPBERRY_PI_IP
+```
+
+Beispiel:
+
+```bash
+ssh pi@192.168.178.50
+```
+
+### Schritt 2: Den Home-Assistant-Container ermitteln
+
+Container anzeigen:
 
 ```bash
 docker ps
+```
+
+Der Home-Assistant-Container heißt häufig `homeassistant`. Falls er anders heißt, muss dieser Name in den folgenden Befehlen ersetzt werden.
+
+Den Host-Ordner anzeigen, der in den Container nach `/config` gemountet wird:
+
+```bash
 docker inspect homeassistant --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
 ```
 
-Wenn der Host-Ordner beispielsweise `/opt/homeassistant` ist, kann die Integration direkt dort installiert werden:
+Beispielausgabe:
 
-```bash
-mkdir -p /opt/homeassistant/custom_components
-unzip beckhoff_ads_auto.zip -d /tmp/beckhoff_ads_auto
-cp -r /tmp/beckhoff_ads_auto/custom_components/beckhoff_ads_auto /opt/homeassistant/custom_components/
-docker restart homeassistant
+```text
+/opt/homeassistant -> /config
 ```
 
-Bei Docker Compose wird normalerweise der Ordner neben `configuration.yaml` verwendet:
+In diesem Beispiel ist `/opt/homeassistant` der richtige Ordner auf dem Raspberry Pi. Dort muss auch die Datei `configuration.yaml` liegen:
+
+```bash
+ls -l /opt/homeassistant/configuration.yaml
+```
+
+Wenn dein Ergebnis beispielsweise `/home/pi/homeassistant -> /config` lautet, verwendest du stattdessen `/home/pi/homeassistant` als Config-Ordner.
+
+In den folgenden Befehlen wird beispielhaft `/opt/homeassistant` verwendet.
+
+### Schritt 3: Docker-Netzwerk für ADS konfigurieren
+
+Für Docker auf Linux wird `network_mode: host` empfohlen. Dadurch verwendet Home Assistant direkt das Netzwerk des Raspberry Pi. Das erleichtert die ADS-Kommunikation und die ADS-Route.
+
+Wenn du Docker Compose verwendest, sollte der Home-Assistant-Service ungefähr so aussehen:
 
 ```yaml
 services:
@@ -66,15 +98,175 @@ services:
     restart: unless-stopped
 ```
 
-`network_mode: host` ist auf einem Linux-Raspberry-Pi für ADS am einfachsten. Dadurch kann der Container die Netzwerkadresse des Raspberry Pi verwenden. Nach Änderungen an `docker-compose.yml`:
+Die vorhandenen weiteren Einstellungen wie `privileged`, `devices` oder Umgebungsvariablen bleiben erhalten. Bei `network_mode: host` wird normalerweise kein `ports:`-Abschnitt benötigt.
+
+Nach einer Änderung der Compose-Datei aus dem Ordner mit der Datei `docker-compose.yml` ausführen:
 
 ```bash
 docker compose up -d
 ```
 
-Danach wird HACS wie oben beschrieben installiert. Alternativ kann die Integration ohne HACS direkt nach `/opt/homeassistant/custom_components/beckhoff_ads_auto` kopiert werden. `pyads` wird beim Laden der Integration anhand der `manifest.json` in die Home-Assistant-Abhängigkeiten installiert.
+Wenn du keine Compose-Datei ändern möchtest, funktioniert die Integration bei vielen Netzwerken auch mit dem bestehenden Bridge-Netzwerk. Für stabile ADS-Routen wird auf einem Raspberry Pi trotzdem `network_mode: host` empfohlen.
 
-Die ADS-Route in TwinCAT muss auf die IP-Adresse und AMS Net ID des Raspberry Pi zeigen. Bei Docker Bridge-Netzwerken kann die Container-IP wechseln; deshalb wird für diese Integration auf dem Raspberry Pi `network_mode: host` empfohlen.
+### Schritt 4: Integration direkt installieren
+
+Diese Variante benötigt weder HACS noch ein Home-Assistant-Add-on.
+
+Auf dem Raspberry Pi ausführen:
+
+```bash
+cd /tmp
+rm -rf beckhoff_ads_auto-main beckhoff_ads_auto.zip
+wget -O beckhoff_ads_auto.zip https://github.com/NKAutomations/beckhoff_ads_auto/archive/refs/heads/main.zip
+unzip beckhoff_ads_auto.zip
+mkdir -p /opt/homeassistant/custom_components
+rm -rf /opt/homeassistant/custom_components/beckhoff_ads_auto
+cp -r /tmp/beckhoff_ads_auto-main/custom_components/beckhoff_ads_auto /opt/homeassistant/custom_components/
+```
+
+Falls `wget` oder `unzip` nicht installiert ist:
+
+```bash
+sudo apt update
+sudo apt install -y wget unzip
+```
+
+Installation prüfen:
+
+```bash
+ls -l /opt/homeassistant/custom_components/beckhoff_ads_auto
+```
+
+Die Dateien `manifest.json`, `__init__.py`, `config_flow.py` und `ads_client.py` müssen sichtbar sein.
+
+### Schritt 5: Home Assistant neu starten
+
+Bei Docker Compose:
+
+```bash
+docker compose restart homeassistant
+```
+
+Oder direkt:
+
+```bash
+docker restart homeassistant
+```
+
+`pyads` wird von Home Assistant anhand der `requirements` in [manifest.json](custom_components/beckhoff_ads_auto/manifest.json) automatisch als Integration-Abhängigkeit installiert. Es ist normalerweise **nicht** nötig, `pip install pyads` auf dem Raspberry Pi auszuführen.
+
+Die Installation kann in den Container-Logs beobachtet werden:
+
+```bash
+docker logs -f homeassistant
+```
+
+Die Anzeige wird mit `Ctrl+C` beendet. Fehlermeldungen zu `beckhoff_ads_auto` oder `pyads` müssen vor der weiteren Einrichtung behoben werden.
+
+### Schritt 6: ADS-Route in TwinCAT einrichten
+
+Auf dem Windows-PC mit TwinCAT XAE:
+
+1. TwinCAT-Projekt öffnen.
+2. **SYSTEM → Routes** öffnen.
+3. **Add Route** auswählen.
+4. IP-Adresse des Raspberry Pi eintragen.
+5. Die AMS Net ID des Raspberry Pi eintragen.
+6. Die Route bestätigen beziehungsweise die Zugangsdaten eingeben.
+7. Prüfen, dass die Route als aktiv angezeigt wird.
+
+Beispiel:
+
+| Gerät | IP-Adresse | AMS Net ID |
+|---|---|---|
+| Raspberry Pi | `192.168.178.50` | `192.168.178.50.1.1` |
+| Beckhoff PLC | `192.168.178.60` | `5.1.204.160.1.1` |
+
+Die Werte sind Beispiele. Die PLC-AMS-Net-ID muss exakt der in TwinCAT angezeigten AMS Net ID entsprechen. Die AMS Net ID des Raspberry Pi muss bei der verwendeten ADS-Konfiguration zur Route passen.
+
+Die TwinCAT-3-Runtime verwendet normalerweise ADS-Port `851`. ADS-Kommunikation verwendet zusätzlich typischerweise TCP/UDP-Port `48898`. Firewall-Regeln und VLAN-Regeln dürfen diese Kommunikation nicht blockieren.
+
+### Schritt 7: Integration in der Home-Assistant-Oberfläche hinzufügen
+
+Nach dem Neustart im Browser:
+
+1. **Einstellungen** öffnen.
+2. **Geräte & Dienste** öffnen.
+3. **Integration hinzufügen** anklicken.
+4. Nach **Beckhoff ADS Auto** suchen.
+5. Das Konfigurationsformular ausfüllen.
+
+Beispielwerte:
+
+| Formularfeld | Wert |
+|---|---|
+| PLC Host | `192.168.178.60` |
+| AMS Net ID | `5.1.204.160.1.1` |
+| ADS Port | `851` |
+| Root-Symbole | `GVL_HA` |
+| Polling-Intervall | `2` |
+| Schreiben aktivieren | nach Bedarf |
+
+Für mehrere Roots den Wert kommasepariert angeben:
+
+```text
+GVL_HA,MAIN.ha,GVL_Visualisierung
+```
+
+Der Root-Name muss exakt dem Symbolnamen in TwinCAT entsprechen. Es dürfen keine zusätzlichen Anführungszeichen verwendet werden.
+
+### Schritt 8: Entities kontrollieren
+
+Nach erfolgreicher Einrichtung:
+
+1. **Einstellungen → Geräte & Dienste** öffnen.
+2. **Beckhoff ADS Auto** auswählen.
+3. Das automatisch angelegte Beckhoff-PLC-Gerät öffnen.
+4. Die gefundenen Entities kontrollieren.
+
+Bei Änderungen an der PLC-Struktur den Button **Rescan symbols** am PLC-Gerät ausführen.
+
+### Alternative: Installation über HACS
+
+Die direkte Installation aus Schritt 4 und die HACS-Installation sind Alternativen. Es soll nur eine der beiden Varianten verwendet werden.
+
+1. HACS in Home Assistant öffnen.
+2. **Integrationen** auswählen.
+3. Das Drei-Punkte-Menü öffnen.
+4. **Benutzerdefinierte Repositories** auswählen.
+5. Diese Repository-URL eintragen:
+
+```text
+https://github.com/NKAutomations/beckhoff_ads_auto
+```
+
+6. Kategorie **Integration** auswählen.
+7. Repository hinzufügen.
+8. **Beckhoff ADS Auto** installieren.
+9. Home Assistant neu starten.
+10. Mit Schritt 7 dieser Anleitung fortfahren.
+
+Wenn HACS die Integration nicht findet, zuerst prüfen, ob der Repository-Typ **Integration** ausgewählt wurde und ob der Home-Assistant-Container Internetzugriff besitzt.
+
+### Docker-Installation überprüfen
+
+Der endgültige Pfad muss innerhalb des Containers so aussehen:
+
+```bash
+docker exec homeassistant ls -l /config/custom_components/beckhoff_ads_auto
+```
+
+Die Antwort muss Dateien wie `manifest.json` und `__init__.py` enthalten. Der Ordner darf nicht versehentlich so verschachtelt sein:
+
+```text
+/config/custom_components/beckhoff_ads_auto-main/custom_components/beckhoff_ads_auto
+```
+
+Der korrekte Pfad ist:
+
+```text
+/config/custom_components/beckhoff_ads_auto/manifest.json
+```
 
 ## Beispiel einer TwinCAT-Struktur
 
