@@ -268,6 +268,64 @@ Der korrekte Pfad ist:
 /config/custom_components/beckhoff_ads_auto/manifest.json
 ```
 
+### Fehler: `permission denied` bei `docker ps`
+
+Wenn bei `docker ps` eine Meldung wie `permission denied while trying to connect to the Docker daemon socket` erscheint, hat der aktuell angemeldete Linux-Benutzer keinen Zugriff auf den Docker-Socket.
+
+Zuerst testen:
+
+```bash
+sudo docker ps
+```
+
+Wenn dieser Befehl funktioniert, den eigenen Benutzer dauerhaft zur Docker-Gruppe hinzufügen. `BENUTZERNAME` durch den Linux-Benutzer ersetzen, mit dem du per SSH angemeldet bist:
+
+```bash
+sudo usermod -aG docker BENUTZERNAME
+```
+
+Den aktuell angemeldeten Benutzernamen kannst du anzeigen:
+
+```bash
+whoami
+```
+
+Danach die SSH-Sitzung vollständig beenden:
+
+```bash
+exit
+```
+
+Neu per SSH anmelden und testen:
+
+```bash
+docker ps
+```
+
+Alternativ kann die Gruppenzugehörigkeit in der aktuellen Sitzung einmalig neu geladen werden:
+
+```bash
+newgrp docker
+docker ps
+```
+
+Für die nächsten Docker-Befehle kann bis zum erneuten Login auch `sudo` verwendet werden, zum Beispiel:
+
+```bash
+sudo docker inspect homeassistant --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+sudo docker restart homeassistant
+```
+
+Wenn auch `sudo docker ps` nicht funktioniert, den Docker-Dienst prüfen:
+
+```bash
+sudo systemctl status docker
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+Den Docker-Socket nicht mit `chmod 777 /var/run/docker.sock` freigeben. Das wäre eine unnötige Sicherheitslücke.
+
 ## Beispiel einer TwinCAT-Struktur
 
 ```iecst
