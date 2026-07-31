@@ -45,15 +45,14 @@ class ADSClient:
         self._local_router_configured = False
 
     def _configure_local_router(self) -> None:
-        """Configure pyads' Linux AMS source address before opening a connection."""
         if not self.local_ams_net_id or self._local_router_configured:
             return
         try:
+            _LOGGER.debug("Configuring local ADS AMS Net ID: %s", self.local_ams_net_id)
             pyads.open_port()
             pyads.set_local_address(self.local_ams_net_id)
             pyads.close_port()
             self._local_router_configured = True
-            _LOGGER.debug("Configured local ADS AMS Net ID: %s", self.local_ams_net_id)
         except Exception:
             try:
                 pyads.close_port()
@@ -61,27 +60,34 @@ class ADSClient:
                 _LOGGER.debug("Error closing temporary pyads router port", exc_info=True)
             raise
 
+    def _set_timeout(self) -> None:
+        timeout_ms = int(self.timeout * 1000)
+        connection_timeout = getattr(self._connection, "set_timeout", None)
+        if callable(connection_timeout):
+            connection_timeout(timeout_ms)
+            return
+        global_timeout = getattr(pyads, "set_timeout", None)
+        if callable(global_timeout):
+            global_timeout(timeout_ms)
+            return
+        raise TypeError("Installed pyads version has no callable timeout API")
+
     def connect(self) -> None:
         with self._lock:
             if self._connection and self._connection.is_open:
                 return
             _LOGGER.debug(
-                "Opening ADS connection to %s:%s via %s (local AMS: %s, timeout: %.2fs)",
-                self.ams_net_id,
-                self.port,
-                self.host,
-                self.local_ams_net_id,
-                self.timeout,
+                "Opening ADS connection to target=%s port=%s host=%s local_ams=%s timeout=%.2fs",
+                self.ams_net_id, self.port, self.host, self.local_ams_net_id, self.timeout,
             )
             try:
                 self._configure_local_router()
                 self._connection = pyads.Connection(self.ams_net_id, self.port, self.host)
                 self._connection.open()
-                self._connection.set_timeout(int(self.timeout * 1000))
-                # Do not call get_local_address() here. It is diagnostic only and
-                # differs between pyads versions; it is not required for ADS I/O.
+                self._set_timeout()
                 _LOGGER.debug("ADS connection opened successfully")
             except Exception as err:
+                _LOGGER.exception("ADS connection failed: %s", err)
                 self._connection = None
                 raise BeckhoffAdsConnectionError(str(err)) from err
 
@@ -90,7 +96,7 @@ class ADSClient:
             if self._connection:
                 try:
                     self._connection.close()
-                except Exception:  # pragma: no cover - best effort cleanup
+                except Exception:
                     _LOGGER.debug("Error while closing ADS connection", exc_info=True)
                 self._connection = None
 
@@ -125,27 +131,19 @@ class ADSClient:
             if exclude and _matches(path, exclude):
                 continue
             forced_ro = bool(read_only and _matches(path, read_only))
-            try:
-                symbol_read_only = bool(getattr(symbol, "read_only", False))
-            except Exception:
-                symbol_read_only = False
+            symbol_read_only = bool(getattr(symbol, "read_only", False))
             result[path] = SymbolDescriptor(path, info.plc_type, info, not (symbol_read_only or forced_ro), str(getattr(symbol, "comment", "") or ""), getattr(symbol, "size", None))
-        _LOGGER.debug("Discovered %d supported ADS symbols below roots %s", len(result), roots)
         return result
 
     def read_many(self, descriptors: list[SymbolDescriptor]) -> dict[str, Any]:
         if not descriptors:
             return {}
         connection = self._ensure()
-        values: dict[str, Any] = {}
         try:
-            for descriptor in descriptors:
-                values[descriptor.path] = connection.read_by_name(descriptor.path, descriptor.plc_type)
-            _LOGGER.debug("Read %d ADS symbols", len(values))
+            return {descriptor.path: connection.read_by_name(descriptor.path, descriptor.plc_type) for descriptor in descriptors}
         except Exception as err:
             self.close()
             raise BeckhoffAdsReadError(str(err)) from err
-        return values
 
     def read(self, descriptor: SymbolDescriptor) -> Any:
         return self.read_many([descriptor]).get(descriptor.path)
@@ -156,7 +154,6 @@ class ADSClient:
         connection = self._ensure()
         try:
             connection.write_by_name(descriptor.path, _coerce_value(value, descriptor.normalized_type), descriptor.plc_type)
-            _LOGGER.debug("Wrote ADS symbol %s", descriptor.path)
         except Exception as err:
             self.close()
             raise BeckhoffAdsWriteError(str(err)) from err
@@ -169,9 +166,7 @@ def _matches(path: str, pattern: str) -> bool:
 
 def _coerce_value(value: Any, plc_type: str) -> Any:
     if plc_type == "BOOL":
-        if isinstance(value, str):
-            return value.lower() in {"1", "true", "on", "yes"}
-        return bool(value)
+        return value.lower() in {"1", "true", "on", "yes"} if isinstance(value, str) else bool(value)
     if plc_type == "STRING":
         return str(value)
     return float(value) if plc_type in {"REAL", "LREAL"} else int(value)

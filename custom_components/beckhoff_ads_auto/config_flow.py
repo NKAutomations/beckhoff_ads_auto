@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import selector
 
 from .ads_client import ADSClient
 from .const import (CONF_AMS_NET_ID, CONF_EXCLUDE, CONF_HOST, CONF_INCLUDE, CONF_INCLUDE_ARRAYS,
                     CONF_LOCAL_AMS_NET_ID, CONF_POLL_INTERVAL, CONF_PORT, CONF_READ_ONLY, CONF_ROOTS,
                     CONF_TIMEOUT, CONF_WRITE_ENABLE, DEFAULT_POLL_INTERVAL, DEFAULT_PORT, DEFAULT_TIMEOUT,
                     DOMAIN)
+
+_LOGGER = logging.getLogger(__name__)
 
 class BeckhoffConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -30,7 +32,8 @@ class BeckhoffConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         float(user_input.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)),
                     ).test_connection
                 )
-            except Exception:
+            except Exception as err:
+                _LOGGER.exception("ADS config-flow connection test failed: %s", err)
                 errors["base"] = "cannot_connect"
             else:
                 await self.async_set_unique_id(f"{user_input[CONF_AMS_NET_ID]}:{user_input[CONF_PORT]}")
