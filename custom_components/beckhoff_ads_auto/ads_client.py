@@ -45,13 +45,7 @@ class ADSClient:
         self._local_router_configured = False
 
     def _configure_local_router(self) -> None:
-        """Configure pyads' Linux AMS source address before opening a connection.
-
-        ioBroker's sourceAmsNetId maps to pyads.set_local_address(). Setting
-        Connection.ams_net_id is not equivalent: that attribute is the target
-        address, while pyads stores the actual ADS destination in its internal
-        AmsAddr object.
-        """
+        """Configure pyads' Linux AMS source address before opening a connection."""
         if not self.local_ams_net_id or self._local_router_configured:
             return
         try:
@@ -71,14 +65,22 @@ class ADSClient:
         with self._lock:
             if self._connection and self._connection.is_open:
                 return
-            _LOGGER.debug("Opening ADS connection to %s:%s via %s (local AMS: %s, timeout: %.2fs)", self.ams_net_id, self.port, self.host, self.local_ams_net_id, self.timeout)
+            _LOGGER.debug(
+                "Opening ADS connection to %s:%s via %s (local AMS: %s, timeout: %.2fs)",
+                self.ams_net_id,
+                self.port,
+                self.host,
+                self.local_ams_net_id,
+                self.timeout,
+            )
             try:
                 self._configure_local_router()
                 self._connection = pyads.Connection(self.ams_net_id, self.port, self.host)
                 self._connection.open()
                 self._connection.set_timeout(int(self.timeout * 1000))
-                local_address = self._connection.get_local_address()
-                _LOGGER.debug("ADS connection opened; local AMS address: %s", local_address)
+                # Do not call get_local_address() here. It is diagnostic only and
+                # differs between pyads versions; it is not required for ADS I/O.
+                _LOGGER.debug("ADS connection opened successfully")
             except Exception as err:
                 self._connection = None
                 raise BeckhoffAdsConnectionError(str(err)) from err
@@ -137,8 +139,6 @@ class ADSClient:
         connection = self._ensure()
         values: dict[str, Any] = {}
         try:
-            # pyads has no portable multi-read API across all supported versions;
-            # keeping one connection and doing reads under one lock is reliable.
             for descriptor in descriptors:
                 values[descriptor.path] = connection.read_by_name(descriptor.path, descriptor.plc_type)
             _LOGGER.debug("Read %d ADS symbols", len(values))
