@@ -19,9 +19,30 @@ PLATFORMS = ["sensor", "binary_sensor", "switch", "number", "text", "button"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = ADSCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        _LOGGER.exception(
+            "Initial ADS refresh failed for entry=%s target=%s host=%s port=%s",
+            entry.entry_id,
+            coordinator.client.ams_net_id,
+            coordinator.client.host,
+            coordinator.client.port,
+        )
+        await coordinator.async_shutdown()
+        raise
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except Exception:
+        _LOGGER.exception(
+            "ADS platform setup failed for entry=%s symbols=%s",
+            entry.entry_id,
+            len(coordinator.symbols),
+        )
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+        await coordinator.async_shutdown()
+        raise
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
 

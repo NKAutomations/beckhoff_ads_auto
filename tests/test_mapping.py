@@ -4,4 +4,6 @@ def test_type_mapping():
     assert classify_type("BOOL").boolean
     assert classify_type("LREAL").numeric
     assert classify_type("STRING(80)").string
+    assert classify_type("TIME").string
+    assert classify_type("DATE_AND_TIME").string
     assert normalize_type("STRING(80)") == "STRING"
