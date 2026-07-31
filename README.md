@@ -32,6 +32,50 @@ Custom Integration für TwinCAT 3 über ADS/`pyads`. Sie entdeckt Blatt-Symbole 
 
 Das Repository als benutzerdefiniertes Repository vom Typ **Integration** hinzufügen. Danach **Beckhoff ADS Auto** installieren und Home Assistant neu starten.
 
+## Home Assistant als Docker-Container
+
+Bei Docker müssen Dateien in das auf dem Host gemountete Home-Assistant-Konfigurationsverzeichnis kopiert werden. Der Zielpfad im Container ist normalerweise `/config`.
+
+Zuerst den Container und die Mounts prüfen:
+
+```bash
+docker ps
+docker inspect homeassistant --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+```
+
+Wenn der Host-Ordner beispielsweise `/opt/homeassistant` ist, kann die Integration direkt dort installiert werden:
+
+```bash
+mkdir -p /opt/homeassistant/custom_components
+unzip beckhoff_ads_auto.zip -d /tmp/beckhoff_ads_auto
+cp -r /tmp/beckhoff_ads_auto/custom_components/beckhoff_ads_auto /opt/homeassistant/custom_components/
+docker restart homeassistant
+```
+
+Bei Docker Compose wird normalerweise der Ordner neben `configuration.yaml` verwendet:
+
+```yaml
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    network_mode: host
+    volumes:
+      - /opt/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+```
+
+`network_mode: host` ist auf einem Linux-Raspberry-Pi für ADS am einfachsten. Dadurch kann der Container die Netzwerkadresse des Raspberry Pi verwenden. Nach Änderungen an `docker-compose.yml`:
+
+```bash
+docker compose up -d
+```
+
+Danach wird HACS wie oben beschrieben installiert. Alternativ kann die Integration ohne HACS direkt nach `/opt/homeassistant/custom_components/beckhoff_ads_auto` kopiert werden. `pyads` wird beim Laden der Integration anhand der `manifest.json` in die Home-Assistant-Abhängigkeiten installiert.
+
+Die ADS-Route in TwinCAT muss auf die IP-Adresse und AMS Net ID des Raspberry Pi zeigen. Bei Docker Bridge-Netzwerken kann die Container-IP wechseln; deshalb wird für diese Integration auf dem Raspberry Pi `network_mode: host` empfohlen.
+
 ## Beispiel einer TwinCAT-Struktur
 
 ```iecst
