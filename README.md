@@ -21,6 +21,87 @@ Custom Integration für TwinCAT 3 über ADS/`pyads`. Sie entdeckt Blatt-Symbole 
 
 Diese Anleitung gilt für Home Assistant Container beziehungsweise Docker Compose auf Raspberry Pi OS. Sie gilt **nicht** für Home Assistant OS. Alle Linux-Befehle werden auf dem Raspberry Pi per SSH ausgeführt.
 
+### Raspberry-Pi-Schnellstart mit `/home/pi/homeassistant`
+
+Wenn dein Docker-Mount bei Schritt 2 so aussieht:
+
+```text
+/home/pi/homeassistant -> /config
+```
+
+verwendest du ab jetzt immer `/home/pi/homeassistant` als Host-Config-Ordner. Die folgenden Befehle können in genau dieser Reihenfolge kopiert werden. Sie werden auf dem Raspberry Pi ausgeführt.
+
+#### A. Prüfen, ob der Config-Ordner richtig ist
+
+```bash
+ls -la /home/pi/homeassistant
+ls -la /home/pi/homeassistant/configuration.yaml
+```
+
+Die zweite Ausgabe muss die Datei `configuration.yaml` anzeigen. Wenn `No such file or directory` erscheint, ist `/home/pi/homeassistant` nicht der richtige Mount. Dann den tatsächlich ausgegebenen Ordner aus `docker inspect` verwenden.
+
+#### B. Integration herunterladen und installieren
+
+```bash
+cd /tmp
+rm -rf beckhoff_ads_auto-main beckhoff_ads_auto.zip
+wget -O beckhoff_ads_auto.zip https://github.com/NKAutomations/beckhoff_ads_auto/archive/refs/heads/main.zip
+unzip beckhoff_ads_auto.zip
+mkdir -p /home/pi/homeassistant/custom_components
+rm -rf /home/pi/homeassistant/custom_components/beckhoff_ads_auto
+cp -r /tmp/beckhoff_ads_auto-main/custom_components/beckhoff_ads_auto /home/pi/homeassistant/custom_components/
+```
+
+Wenn `wget` oder `unzip` fehlt, vorher einmal ausführen:
+
+```bash
+sudo apt update
+sudo apt install -y wget unzip
+```
+
+#### C. Installation kontrollieren
+
+```bash
+ls -la /home/pi/homeassistant/custom_components/beckhoff_ads_auto
+```
+
+In der Ausgabe müssen mindestens diese Dateien stehen:
+
+```text
+manifest.json
+__init__.py
+config_flow.py
+ads_client.py
+coordinator.py
+```
+
+#### D. Container neu starten
+
+```bash
+docker restart homeassistant
+```
+
+Falls dein Container nicht `homeassistant` heißt, zuerst `docker ps` ausführen und den Namen aus der Spalte `NAMES` verwenden.
+
+#### E. Prüfen, ob Home Assistant die Dateien im Container sieht
+
+```bash
+docker exec homeassistant ls -la /config/custom_components/beckhoff_ads_auto
+```
+
+Das muss dieselben Dateien wie Schritt C anzeigen. Falls nicht, wurde der falsche Host-Ordner verwendet.
+
+#### F. Danach in der Home-Assistant-Weboberfläche fortfahren
+
+1. Home Assistant im Browser öffnen.
+2. **Einstellungen** öffnen.
+3. **Geräte & Dienste** öffnen.
+4. **Integration hinzufügen** anklicken.
+5. Nach **Beckhoff ADS Auto** suchen.
+6. PLC-IP, AMS Net ID, Port `851`, Root-Symbol und Polling-Intervall eintragen.
+
+HACS ist für diesen Schnellstart nicht erforderlich. Die direkte Installation ist für den ersten Test einfacher. HACS kann später zusätzlich eingerichtet werden, sollte aber nicht parallel zur direkten Installation verwendet werden.
+
 ### Voraussetzungen
 
 Vorher müssen folgende Informationen bekannt sein:
@@ -78,7 +159,19 @@ ls -l /opt/homeassistant/configuration.yaml
 
 Wenn dein Ergebnis beispielsweise `/home/pi/homeassistant -> /config` lautet, verwendest du stattdessen `/home/pi/homeassistant` als Config-Ordner.
 
-In den folgenden Befehlen wird beispielhaft `/opt/homeassistant` verwendet.
+Für einen Raspberry Pi mit diesem Mount sieht die Prüfung genau so aus:
+
+```bash
+ls -la /home/pi/homeassistant/configuration.yaml
+```
+
+Wenn die Datei vorhanden ist, lautet der zu verwendende Installationspfad:
+
+```text
+/home/pi/homeassistant/custom_components/beckhoff_ads_auto/
+```
+
+Wenn dein Mount `/home/pi/homeassistant -> /config` lautet, verwende in allen folgenden Befehlen `/home/pi/homeassistant` und nicht `/opt/homeassistant`.
 
 ### Schritt 3: Docker-Netzwerk für ADS konfigurieren
 
