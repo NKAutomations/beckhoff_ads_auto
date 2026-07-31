@@ -5,8 +5,10 @@ from typing import Final
 
 DOMAIN: Final = "beckhoff_ads_auto"
 CONF_AMS_NET_ID: Final = "ams_net_id"
+CONF_LOCAL_AMS_NET_ID: Final = "local_ams_net_id"
 CONF_HOST: Final = "host"
 CONF_PORT: Final = "port"
+CONF_TIMEOUT: Final = "timeout"
 CONF_ROOTS: Final = "roots"
 CONF_POLL_INTERVAL: Final = "poll_interval"
 CONF_WRITE_ENABLE: Final = "write_enable"
@@ -16,6 +18,7 @@ CONF_READ_ONLY: Final = "read_only"
 CONF_INCLUDE_ARRAYS: Final = "include_arrays"
 DEFAULT_PORT: Final = 851
 DEFAULT_POLL_INTERVAL: Final = 2.0
+DEFAULT_TIMEOUT: Final = 5.0
 SERVICE_RESCAN: Final = "rescan"
 SERVICE_READ_SYMBOL: Final = "read_symbol"
 SERVICE_WRITE_SYMBOL: Final = "write_symbol"

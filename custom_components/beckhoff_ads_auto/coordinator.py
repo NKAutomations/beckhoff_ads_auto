@@ -11,7 +11,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .ads_client import ADSClient, SymbolDescriptor
 from .const import (CONF_AMS_NET_ID, CONF_EXCLUDE, CONF_HOST, CONF_INCLUDE, CONF_INCLUDE_ARRAYS,
-                    CONF_POLL_INTERVAL, CONF_READ_ONLY, CONF_ROOTS, CONF_WRITE_ENABLE, DEFAULT_POLL_INTERVAL, DOMAIN)
+                    CONF_LOCAL_AMS_NET_ID, CONF_POLL_INTERVAL, CONF_PORT, CONF_READ_ONLY, CONF_ROOTS,
+                    CONF_TIMEOUT, CONF_WRITE_ENABLE, DEFAULT_POLL_INTERVAL, DEFAULT_TIMEOUT, DOMAIN)
 from .exceptions import BeckhoffAdsError
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +21,13 @@ class ADSCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         config = {**entry.data, **entry.options}
-        self.client = ADSClient(config[CONF_HOST], config[CONF_AMS_NET_ID], int(config.get("port", 851)))
+        self.client = ADSClient(
+            config[CONF_HOST],
+            config[CONF_AMS_NET_ID],
+            int(config.get(CONF_PORT, 851)),
+            config.get(CONF_LOCAL_AMS_NET_ID) or None,
+            float(config.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)),
+        )
         self.roots = _csv(config.get(CONF_ROOTS, ""))
         self.include, self.exclude, self.read_only = config.get(CONF_INCLUDE, ""), config.get(CONF_EXCLUDE, ""), config.get(CONF_READ_ONLY, "")
         self.include_arrays = bool(config.get(CONF_INCLUDE_ARRAYS, False))

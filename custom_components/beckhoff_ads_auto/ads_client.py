@@ -36,8 +36,10 @@ def classify_type(value: Any) -> TypeInfo | None:
     return TYPE_MAPPING.get(normalize_type(value))
 
 class ADSClient:
-    def __init__(self, host: str, ams_net_id: str, port: int) -> None:
+    def __init__(self, host: str, ams_net_id: str, port: int, local_ams_net_id: str | None = None, timeout: float = 5.0) -> None:
         self.host, self.ams_net_id, self.port = host, ams_net_id, port
+        self.local_ams_net_id = local_ams_net_id.strip() if local_ams_net_id else None
+        self.timeout = float(timeout)
         self._connection: pyads.Connection | None = None
         self._lock = threading.RLock()
 
@@ -45,10 +47,14 @@ class ADSClient:
         with self._lock:
             if self._connection and self._connection.is_open:
                 return
-            _LOGGER.debug("Opening ADS connection to %s:%s via %s", self.ams_net_id, self.port, self.host)
+            _LOGGER.debug("Opening ADS connection to %s:%s via %s (local AMS: %s, timeout: %.2fs)", self.ams_net_id, self.port, self.host, self.local_ams_net_id, self.timeout)
             try:
                 self._connection = pyads.Connection(self.ams_net_id, self.port, self.host)
+                if self.local_ams_net_id and hasattr(self._connection, "ams_net_id"):
+                    self._connection.ams_net_id = self.local_ams_net_id
                 self._connection.open()
+                if hasattr(self._connection, "set_timeout"):
+                    self._connection.set_timeout(int(self.timeout * 1000))
             except Exception as err:
                 self._connection = None
                 raise BeckhoffAdsConnectionError(str(err)) from err
